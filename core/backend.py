@@ -1,9 +1,8 @@
-import json
-
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
+from jenkinsapi.jenkins import Jenkins
 
 app = Flask(__name__)
 # done: 输出中文
@@ -15,6 +14,12 @@ db = SQLAlchemy(app)
 # token管理
 app.config['JWT_SECRET_KEY'] = 'ceshiren.com'  # Change this!
 jwt = JWTManager(app)
+
+jenkins = Jenkins(
+    'http://stuq.ceshiren.com:8020/',
+    username='seveniruby',
+    password='11743b5e008e546ec1e404933d00b35a07'
+)
 
 
 class User(db.Model):
@@ -65,10 +70,12 @@ class TestCaseApi(Resource):
             'msg': 'ok'
         }
 
+    # todo：更新用例
     @jwt_required
     def put(self):
         pass
 
+    # todo: 删除用例
     @jwt_required
     def delete(self):
         pass
@@ -101,9 +108,41 @@ class LoginApi(Resource):
                 'token': create_access_token(identity=user.username)
             }
 
+    # todo: 注册
+    def put(self):
+        pass
+
+    # todo:注销
+    def delete(self):
+        pass
+
+
+class TaskApi(Resource):
+    # todo: 查询所有的任务
+    def get(self):
+        pass
+
+    def post(self):
+        # todo: 用例获取
+        testcases = request.json.get('testcases', None)
+        # done: 调度jenkins
+        jenkins['testcase'].invoke(
+            securitytoken='11743b5e008e546ec1e404933d00b35a07',
+            build_params={
+                'testcases': testcases
+            })
+
+        return {
+            'errcode': 0,
+            'errmsg': 'ok'
+        }
+
+        # todo: 结果交给其他接口异步处理
+
 
 api.add_resource(TestCaseApi, '/testcase')
 api.add_resource(LoginApi, '/login')
+api.add_resource(TaskApi, '/task')
 
 if __name__ == '__main__':
     app.run(debug=True)
