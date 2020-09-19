@@ -140,9 +140,26 @@ class TaskApi(Resource):
         # todo: 结果交给其他接口异步处理
 
 
+class ReportApi(Resource):
+    def get(self):
+        # 展示报告数据和曲线图
+
+        pass
+
+    def post(self):
+        # todo: pull模式 主动从jenkins中拉取数据
+        jenkins['testcase'].get_last_build().get_resultset()
+        # todo: push模式 让jenkins node主动push到服务器
+        # todo: 把测试报告数据与测试报告文件保存
+        pass
+
+
 api.add_resource(TestCaseApi, '/testcase')
 api.add_resource(LoginApi, '/login')
 api.add_resource(TaskApi, '/task')
+# todo: 注册
+# api.add_resource(RegistryApi, '/regist')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
