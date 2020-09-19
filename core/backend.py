@@ -1,11 +1,20 @@
-from flask import Flask, request
+import json
+
+from flask import Flask, request, jsonify
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
+# done: 输出中文
+app.config["JSON_AS_ASCII"] = False
+
 api = Api(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://python14:python14@stuq.ceshiren.com:23306/python14'
 db = SQLAlchemy(app)
+# token管理
+app.config['JWT_SECRET_KEY'] = 'ceshiren.com'  # Change this!
+jwt = JWTManager(app)
 
 
 class User(db.Model):
@@ -31,6 +40,7 @@ class TestCase(db.Model):
 
 
 class TestCaseApi(Resource):
+    @jwt_required
     def get(self):
         r = []
         for t in TestCase.query.all():
@@ -42,6 +52,7 @@ class TestCaseApi(Resource):
             r.append(res)
         return r
 
+    @jwt_required
     def post(self):
         t = TestCase(
             name=request.json['name'],
@@ -54,9 +65,11 @@ class TestCaseApi(Resource):
             'msg': 'ok'
         }
 
+    @jwt_required
     def put(self):
         pass
 
+    @jwt_required
     def delete(self):
         pass
 
@@ -67,7 +80,26 @@ class LoginApi(Resource):
         return {'hello': 'world'}
 
     def post(self):
-        pass
+        # done: 查询数据库
+        username = request.json.get('username', None)
+        # todo: 通常密码不建议原文存储
+        password = request.json.get('password', None)
+        user = User.query.filter_by(username=username, password=password).first()
+        # done：生成返回结构体
+        if user is None:
+
+            return jsonify(
+                errcode=1,
+                errmsg='用户名或者密码不对'
+            )
+        else:
+            # done: 生成token
+            return {
+                'errcode': 0,
+                'errmsg': 'ok',
+                'username': user.username,
+                'token': create_access_token(identity=user.username)
+            }
 
 
 api.add_resource(TestCaseApi, '/testcase')
