@@ -120,7 +120,7 @@ class LoginApi(Resource):
                 'errcode': 0,
                 'errmsg': 'ok',
                 'username': user.username,
-                #生成token，用于后续的testcase访问
+                # 生成token，用于后续的testcase访问
                 'token': create_access_token(identity=user.username)
             }
 
@@ -133,12 +133,13 @@ class LoginApi(Resource):
         pass
 
 
-#用例调度
+# 用例调度
 class TaskApi(Resource):
     # todo: 查询所有的任务
     def get(self):
         pass
 
+    @jwt_required
     def post(self):
         # todo: 用例获取
         testcases = request.json.get('testcases', None)
@@ -156,7 +157,8 @@ class TaskApi(Resource):
 
         # todo: 结果交给其他接口异步处理
 
-#数据获取与数据展示
+
+# 数据获取与数据展示
 class ReportApi(Resource):
     def get(self):
         # 展示报告数据和曲线图
