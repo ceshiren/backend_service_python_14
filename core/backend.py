@@ -5,16 +5,22 @@ from flask_sqlalchemy import SQLAlchemy
 from jenkinsapi.jenkins import Jenkins
 
 app = Flask(__name__)
-# done: 输出中文
+# done: 输出中文json
 app.config["JSON_AS_ASCII"] = False
 
+# 使用了RESTFul扩展
 api = Api(app)
+
+# 数据库的配置
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://python14:python14@stuq.ceshiren.com:23306/python14'
+# 使用sqlalchemy扩展
 db = SQLAlchemy(app)
+
 # token管理
 app.config['JWT_SECRET_KEY'] = 'ceshiren.com'  # Change this!
 jwt = JWTManager(app)
 
+# 使用jenkins做任务分发
 jenkins = Jenkins(
     'http://stuq.ceshiren.com:8020/',
     username='seveniruby',
@@ -22,7 +28,9 @@ jenkins = Jenkins(
 )
 
 
+# 用户数据存储的表结构
 class User(db.Model):
+    # 可选，指定对应的表
     __tablename__ = "seveniruby_user"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -33,6 +41,7 @@ class User(db.Model):
         return '<User %r>' % self.username
 
 
+# 测试用例存储的表结构
 class TestCase(db.Model):
     __tablename__ = "seveniruby_testcase"
     id = db.Column(db.Integer, primary_key=True)
@@ -44,10 +53,13 @@ class TestCase(db.Model):
         return '<TestCase %r>' % self.name
 
 
+# 对外的api定义
 class TestCaseApi(Resource):
+    # 需要token验证
     @jwt_required
     def get(self):
         r = []
+        # 查询所有表内数据
         for t in TestCase.query.all():
             res = {}
             res['id'] = t.id
@@ -64,6 +76,7 @@ class TestCaseApi(Resource):
             description=request.json['description'],
             data=request.json['data']
         )
+        # 新增数据
         db.session.add(t)
         db.session.commit()
         return {
@@ -82,19 +95,21 @@ class TestCaseApi(Resource):
 
 
 class LoginApi(Resource):
+    # 无需验证
     def get(self):
-        User.query.all()
+        # User.query.all()
         return {'hello': 'world'}
 
+    # 用户登录
     def post(self):
         # done: 查询数据库
         username = request.json.get('username', None)
         # todo: 通常密码不建议原文存储
         password = request.json.get('password', None)
+        # 查数据库，取出符合条件的第一条
         user = User.query.filter_by(username=username, password=password).first()
         # done：生成返回结构体
         if user is None:
-
             return jsonify(
                 errcode=1,
                 errmsg='用户名或者密码不对'
@@ -105,6 +120,7 @@ class LoginApi(Resource):
                 'errcode': 0,
                 'errmsg': 'ok',
                 'username': user.username,
+                #生成token，用于后续的testcase访问
                 'token': create_access_token(identity=user.username)
             }
 
@@ -117,6 +133,7 @@ class LoginApi(Resource):
         pass
 
 
+#用例调度
 class TaskApi(Resource):
     # todo: 查询所有的任务
     def get(self):
@@ -125,7 +142,7 @@ class TaskApi(Resource):
     def post(self):
         # todo: 用例获取
         testcases = request.json.get('testcases', None)
-        # done: 调度jenkins
+        # done: 调度jenkins，驱动job执行
         jenkins['testcase'].invoke(
             securitytoken='11743b5e008e546ec1e404933d00b35a07',
             build_params={
@@ -139,7 +156,7 @@ class TaskApi(Resource):
 
         # todo: 结果交给其他接口异步处理
 
-
+#数据获取与数据展示
 class ReportApi(Resource):
     def get(self):
         # 展示报告数据和曲线图
