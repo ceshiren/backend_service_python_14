@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 from flask_restful import Resource, Api
 from flask_sqlalchemy import SQLAlchemy
@@ -7,6 +8,9 @@ from jenkinsapi.jenkins import Jenkins
 app = Flask(__name__)
 # done: 输出中文json
 app.config["JSON_AS_ASCII"] = False
+
+#允许跨域访问
+CORS(app)
 
 # 使用了RESTFul扩展
 api = Api(app)
